@@ -27,6 +27,7 @@ from urllib.parse import quote, unquote
 import cherrypy
 from hashing_passwords import check_hash
 import jwt
+import ipaddress
 
 import plexpy
 from plexpy import logger
@@ -270,6 +271,21 @@ def check_rate_limit(ip_address):
     if len(attempts) >= plexpy.CONFIG.HTTP_RATE_LIMIT_ATTEMPTS:
         return max(last_timestamp - (timestamp() - plexpy.CONFIG.HTTP_RATE_LIMIT_LOCKOUT_TIME), 0)
 
+def check_ip_limit(ip_address):
+    try:
+        plexpy.CONFIG.HTTP_AUTH_IP_WHITELIST
+    except NameError:
+        logger.debug("Tautulli WebAuth :: IP Whitelist does not exist. Allowing login..")
+        return None
+    for item in plexpy.CONFIG.HTTP_AUTH_IP_WHITELIST.split(','):
+        http_auth_subnet = item.strip()
+        logger.debug("Tautulli WebAuth :: Checking IP against whitelist subnet %s", http_auth_subnet)
+        if http_auth_subnet:
+            if ipaddress.ip_address(ip_address) in ipaddress.ip_network(http_auth_subnet):
+                logger.debug("Tautulli WebAuth :: IP found in whitelist subnet")
+                return None
+    logger.debug("Tautulli WebAuth :: IP not found in any whitelist subnet")
+    return 1
 
 def check_csrf_token():
     if cherrypy.request.path_info.startswith('/api'):
@@ -380,6 +396,7 @@ class AuthController(object):
     def signin(self, username=None, password=None, token=None, remember_me='0', admin_login='0', *args, **kwargs):
         ip_address = cherrypy.request.remote.ip
         rate_limit = check_rate_limit(ip_address)
+        ip_limit = check_ip_limit(ip_address)
 
         if rate_limit:
             logger.debug("Tautulli WebAuth :: Too many incorrect login attempts from '%s'." % ip_address)
@@ -388,6 +405,12 @@ class AuthController(object):
             cherrypy.response.headers['Retry-After'] = rate_limit
             return error_message
 
+        if ip_limit:
+            logger.debug("Tautulli WebAuth :: Login attempt not allowed from '%s'." % ip_address)
+            error_message = {'status': 'error', 'message': 'Invalid credentials.'}
+            cherrypy.response.status = 401
+            return error_message
+            
         error_message = {'status': 'error', 'message': 'Invalid credentials.'}
 
         valid_login, user_details, user_group = check_credentials(username=username,
