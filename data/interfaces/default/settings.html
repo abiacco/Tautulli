@@ -729,13 +729,13 @@
                             <p class="help-block">Password for web server authentication. Leave empty to disable.</p>
                         </div>
                         <div class="form-group advanced-setting">
-                            <label for="http_auth_ip_whitelist">HTTP Authentication IP Subnet Whitelist</label>
+                            <label for="http_auth_ip_access_list">HTTP Authentication IP Subnet Access List</label>
                             <div class="row">
                                 <div class="col-md-4">
-                                    <input type="text" class="form-control auth-settings" id="http_auth_ip_whitelist" name="http_auth_ip_whitelist" value="${config['http_auth_ip_whitelist']}">
+                                    <input type="text" class="form-control auth-settings" id="http_auth_ip_access_list" name="http_auth_ip_access_list" value="${config['http_auth_ip_access_list']}">
                                 </div>
                             </div>
-                            <p class="help-block">Comma-separated IP Subnet whitelist for web server authentication. Leave as default to allow from everywhere. No value will disable logins!</p>
+                            <p class="help-block">Comma-separated IP Subnet access list for web server authentication. Leave as default to allow from everywhere. No value will disable logins!</p>
                         </div>
 
                         <input type="checkbox" name="auth_changed" id="auth_changed" value="1" style="display: none;">
