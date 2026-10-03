@@ -395,20 +395,20 @@ class AuthController(object):
     @cherrypy.tools.json_out()
     def signin(self, username=None, password=None, token=None, remember_me='0', admin_login='0', *args, **kwargs):
         ip_address = cherrypy.request.remote.ip
-        rate_limit = check_rate_limit(ip_address)
         ip_access = check_ip_access_list(ip_address)
+        rate_limit = check_rate_limit(ip_address)
+
+        if ip_access:
+            logger.debug("Tautulli WebAuth :: Login attempt not allowed from '%s'." % ip_address)
+            error_message = {'status': 'error', 'message': 'Invalid credentials.'}
+            cherrypy.response.status = 401
+            return error_message
 
         if rate_limit:
             logger.debug("Tautulli WebAuth :: Too many incorrect login attempts from '%s'." % ip_address)
             error_message = {'status': 'error', 'message': 'Too many login attempts.'}
             cherrypy.response.status = 429
             cherrypy.response.headers['Retry-After'] = rate_limit
-            return error_message
-
-        if ip_access:
-            logger.debug("Tautulli WebAuth :: Login attempt not allowed from '%s'." % ip_address)
-            error_message = {'status': 'error', 'message': 'Invalid credentials.'}
-            cherrypy.response.status = 401
             return error_message
             
         error_message = {'status': 'error', 'message': 'Invalid credentials.'}
